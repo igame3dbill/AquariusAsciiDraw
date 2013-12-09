@@ -1,0 +1,9 @@
+new
+5 print chr$(11)
+50 read N :rem number of DATA
+100 for i = 1 to N
+120 read D :rem distance 
+130 A=12288+D
+140 read C : rem character
+150 poke A,C
+160 next i
