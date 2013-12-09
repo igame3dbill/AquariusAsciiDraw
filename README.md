@@ -22,3 +22,4 @@ S to save .txt file of BASIC code
 arrowkeys cycle through the characters
 
 Made with Livecode Community Edition 6.0.2
+http://downloads.livecode.com/livecode/6_0_2/
