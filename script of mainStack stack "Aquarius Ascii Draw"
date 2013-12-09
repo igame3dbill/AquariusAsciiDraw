@@ -1,0 +1,336 @@
+/* Aquarius Ascii Drawtool v1.0.0.1 December 7 2013
+
+Use Aquarius character set to draw on simulated 40x25 character screen
+
+Left click to put character on canvas at mouse
+Right click to put empty space character on canvas at mouse
+Alt/Option key and mouse click on canvas character to make it the current brush
+
+Command /Control and:
+   --   N to start a fresh draw
+   --   C to copy BASIC code text for pasting into Aquarius emulator or text editor
+   --   S to save .txt file of BASIC code
+   
+   -- arrowkeys cycle through the character set
+   
+   -- No undo and colors yet. 
+   
+   -- 256 images are loaded as internal controls of the stack
+   -- another method would be to load the images as file references--next versions maybe
+   -- the image IDs are reset in sequence from 400000 to 4000255 to match the ASCII when called later.
+   --- drawing on mouse drag is handled by the field script of stack "aquatextchanger" handler : mouseDrawOnField 
+   -- defaultImages will reset stack size and the images in case I mangle things in other scripts.
+   
+   --Note if you are going to hack this document, the resizeable of the main stack is set to false
+   --resizing the mainstack and thereby the images it contains, resizes the imageSources of the characters in the "AquaTextChanger" stack field  "AquaScreen" 
+   */
+   
+on defaultImages
+   
+   put 399999 into BID -- IDs below 2999999 are reserved to livecode
+   put 1 into x 
+   put 1 into y
+   put 1 into c -- columns counter  
+   repeat with i = 1 to number of images of card 1 of this stack
+      set the width of image i  to 16
+      set the height of image i to 16
+      set the topLeft of image i  to x,y
+      set the ID of image i to BID+i
+      add 32 to x
+      add 1 to c
+      if c > 16 then 
+         put 1 into x
+         put 1 into c
+         add 16 to y
+         end if
+      end repeat
+      put right of image (number of images of card 1 of this stack) into NewW
+      put  bottom of image (number of images of card 1 of this stack) into NewH
+      set the width of this stack to NewW
+   set the height of this stack to NewH
+end defaultImages
+
+--Updates the character preview, colorizes characters, ensures (S)ize is set.
+on updateImages S
+   put 1 into c
+   put 1 into x
+   put 1 into y
+   if S is empty then put the width of stack (the mainStack of this stack)/16 into S
+   put lineOffset("Gray0",the colorNames) into xo
+   put xo into NC -- 
+   repeat with i= 1 to the number of images of group "AquariusCharacterSet" of card 1 of stack (the mainStack of this stack)
+      set the width of image i to S
+      set the height of image i to S
+      set the topLeft of image i to (x*S)-S,(y*S)-S
+      
+      put trunc((x*S)-S) & comma & trunc((y*S)-S) & comma &  trunc((x*S)) & comma & trunc((y*s)) & cr after tRects
+      put the ID of image i into TID
+      put the ImageToUse of stack (the mainstack of this stack) into ITC
+      if TID is ITC then 
+         set the colorOverlay["color"] of image i  to "Red"
+         else
+            set the colorOverlay["color"] of image i to line NC of the colorNames
+            end if
+      add 1 to x
+      add 1 to c
+      add 7 to NC -- differentiate by new color.
+      if c > 16 then 
+         put 1 into x
+         put 1 into c
+         add 1 to y
+      end if
+      if NC > xo+48 then  put xo into NC -- color range
+   end repeat
+   set the ImageRects of stack(the mainStack of this stack) to char 1 to -2 of  tRects
+end updateImages
+
+
+-- snap grid graphics to size of stack minus the border for export / number of squares across
+--resize is disabled as it increases the size of the graphics in the text field
+on resizeStack newWidth
+   if the mouseLoc is within the rect of stack(the mainStack of this stack) then
+   put the topLeft of this stack into TL
+   set the height of this stack to newWidth
+   put trunc((newWidth)/16) into S
+    set the top of stack (the mainStack of this stack) to item 2 of TL
+    set the topleft of group "AquariusCharacterSet" to 1,1
+    updateImages S
+    set the title of stack (the mainStack of this stack) to "Aquarius Characters" && S
+ else
+    exit resizeStack
+    end if
+end resizeStack
+
+
+-- command and control key , new file and save.
+on commandKeyDown cKey
+   if the tool is not "browse tool" then  exit commandKeyDown
+   switch cKey
+      case "n" 
+         open stack "AquaTextChanger"
+         go to card 1 of stack "AquaTextChanger"
+         fillFieldWithEmptyImages
+         focus nothing
+         break
+      case "s"
+         ask file "Save text file out"
+         if it is not empty then 
+            put getPokes() into BASICfile
+            put "file:" & it into tURL
+            if char -4 to -1 of tURL <>".txt" then put ".txt" after tURL
+            put BASICfile into URL tURL
+         end if
+         break
+      case "c"
+         case "x"
+            set the clipboardData["text"] to   getPokes()
+            break
+   end switch
+   pass commandKeyDown
+end commandKeyDown
+
+-- arrow keys cycle through the images and set the brush
+on arrowKey tkey
+put  the  ImageToUse of stack (the mainStack of this stack) into TC
+   switch tkey
+      case "left"
+         subtract 1 from TC
+         break
+      case "up"
+         subtract 16  from TC
+         break
+      case "right"
+         add 1 to TC
+         break
+      case "down"
+           add 16 to TC
+         break
+   end switch
+   if TC > 400255 then put 400000 into TC
+   if TC < 400000 then put 400255 into TC
+   set  the  ImageToUse of stack (the mainStack of this stack) to TC
+   updateImages
+   pass arrowkey
+end arrowKey
+
+
+-- fill the field with  empty  clickable images  representing default PEEKS of aquarius screen ram.
+on fillFieldWithEmptyImages
+   if the EmptyField of stack (the mainStack of this stack) is empty then
+      put 1 into p
+      put empty into field 1  of stack "Aquatextchanger"
+      put the ID of image "032.png" of stack (the mainStack of this stack) into SP -- 400032
+      repeat with l = 1 to 25
+         repeat with c = 1 to 40
+            put space after field 1  of stack "Aquatextchanger"
+            set the imageSource of char -1 of field 1   of stack "AquatextChanger" to SP
+         end repeat
+         put cr after field 1   stack "AquaTextChanger"
+      end repeat
+      set the EmptyField of stack (the mainStack of this stack) to HTMLText of  field 1 of stack "AquaTextchanger"
+   else
+         set  the HTMLText   field 1 of stack "AquaTextChanger" to (the EmptyField of stack (the mainStack of this stack) )
+      end if
+      set the itemToChange of stack (the mainStack of this stack) to "char 1 to 1 of field 1"
+end fillFieldWithEmptyImages
+
+
+-- change image source of selected character of field "Aquascreen" to image selected in preview
+on updateText
+   put  the  ImageToUse of stack (the mainStack of this stack) into TC
+   put the itemToChange of stack (the mainStack of this stack) into ITC
+   if ITC is not empty  and TC is not empty then
+      put the mouseDownMemory of stack(the mainStack of this stack) into MDM
+      put cr & word 2 of ITC & comma & TC after MDM   -- character number in the list
+      set the mouseDownMemory of stack (the mainStack of this stack) to MDM
+      put "set the imageSource of" &&  ITC &&  "to" &&  TC into todoit
+   end if
+      do todoit
+end updateText
+
+-- extract picture to Aquarius BASIC output
+function getPokes
+   put 12287 into FCerror
+   put the  ID of image "000.png" of stack (the mainStack of this stack)-400000 into tChrBase
+   put the ID of image "032.png" of stack (the mainStack of this stack)-400000 into tSpc
+   put 0 into dcount
+   put 0 into i
+   repeat with c = 1 to 25
+      repeat with e = 1 to 40
+         put (the imageSource of char e of line c of field 1 of card 1 of stack "AquaTextChanger" )-400000into PEEK
+         put i && peek & cr after tlist
+         if PEEK is not a number then put 32 into Peek 
+         put PEEK into ASC
+         put "32" & comma & tspc into tignore
+         if ASC is not among the items of tignore    then 
+            add 1 to dcount
+            put  i & comma & ASC & cr after TPokes
+         end if
+         add 1 to i
+      end repeat
+   end repeat
+   replace cr with comma in Tpokes
+   put 1 into n
+   put 9990 into LC
+   repeat with i = number of items of Tpokes down to 1
+      add 1 to n
+      if n = 8 then 
+         subtract 5 from LC
+         put cr & LC && "Data" & space before item i of Tpokes
+         put 1 into n
+      end if
+   end repeat
+   subtract 5 from LC
+   put LC && "Data " before tPokes 
+   subtract 5 from LC
+   put LC  && "Data" && dcount & cr before tPokes
+   replace (comma & cr) with cr in tPokes
+   repeat with d = number of lines of tPokes down to 1 
+      if word 3 of line d of tPokes is empty then delete line d of tPokes
+   end repeat
+   put the BASICHeader of stack (the mainstack of this stack) & cr  & char 1 to -2 of Tpokes & cr  & "run" & cr into tBASIC
+   return tBASIC
+end getPokes
+
+-- convert text input to imageSource data
+on convertTextToImageSources tText
+
+   repeat with C = 1 to number of characters of tText
+      put charToNum(char c of tText) && comma after tTextNums
+   end repeat
+   
+   set the currentInputText of stack (the mainStack of this stack) to tTextNums
+   put  the  ImageToUse of stack (the mainStack of this stack) into TC
+   put the itemToChange of stack (the mainStack of this stack) into ITC
+   put ITC into oldITC
+   put false into TabBool
+   if tTextNums is not empty then
+      
+      if TC is empty then put 400032 into TC
+      if ITC is empty then put "char 1 to 1 of field 1" into ITC
+      put word 2 of ITC-1 into N
+      put 1 into itemLineCounter
+      set itemDelimiter to comma
+      --put tTextNums
+      repeat with i = 1 to number of items of tTextNums
+         put  400000+item i of tTextNums into TC
+         if item i of tTextNums = 9 then 
+            put true into TabBool
+            add 2 to N
+            put 4000032 into TC
+         end if
+         add 1 to itemLineCounter
+         if item i of tTextNums = 10 then 
+            add (42-itemLineCounter) to N
+            put 1 into itemLineCounter
+            if TabBool is true then 
+               subtract 2 from N
+               put false into TabBool
+            end if
+            next repeat
+         else
+            --if N > 1024  then put 1 into N
+            --if N < 0 then put 1024-39 into N
+            set the imageToUse of stack (the mainStack of this stack) to TC
+            put "char" && N+i && "to" && N+i && "of field 1 of stack" && quote & "AquaTextChanger"  & quote into ITC
+            set the itemToChange of stack (the mainStack of this stack) to ITC 
+            updateText
+            
+         end if
+      end repeat
+   end if
+   set the itemToChange of stack (the mainStack of this stack) to oldITC
+   put oldITC into field "CurrentLocation" of stack "TextInput"
+   focus nothing
+end convertTextToImageSources
+
+on printchr0to255
+   put empty into TS
+   put 0 into c
+   repeat with i = 0 to 255
+      put numTochar(i) after TS
+      add 1 to c
+      if c = 14 then 
+         put 0 into c
+         put cr & TS
+      else
+         put space after TS
+         end if
+      end repeat
+      convertTextToImageSources TS
+end printchr0to255
+
+on preOpenStack 
+
+         set the mouseDownMemory of stack (the mainStack of this stack) to empty
+set the itemToChange of stack (the mainStack of this stack) to "char 1 to 1 of field 1"
+   set the ImageToUse of stack (the mainStack of this stack) to 400255 -- FullBlock
+   set the currentInputText of stack (the mainStack of this stack) to empty
+   choose browse tool
+   lock messages
+  updateImages (the width of this stack/16)-- set icons to 16x16, they are a mess for some reason when stack opens
+   open stack "AquaTextChanger" 
+   fillFieldWithEmptyImages
+   open stack "TextInput"
+   unlock messages
+   put 1 into field "CurrentLocation" of stack "TextInput"
+   put char 1 to -1 of the IntroHelp of stack (the mainStack of this stack) into Halp
+         convertTextToImageSources Halp
+
+     focus nothing
+end preOpenStack
+
+
+
+on ImageToUseClicked
+   put the ImageRects of stack (the mainStack of this stack) into IR
+   repeat with i= 1 to the number of lines of IR
+      put line i of IR into tRect
+      if the mouseLoc is within tRect then
+         set the ImageToUse of stack (the mainStack of this stack) to the ID of image i of group "AquariusCharacterSet"  of stack (the mainStack of this stack)  
+         updateImages (the width of this stack/16)
+         end if
+   end repeat
+end ImageToUseClicked
+
+-- end of script of stack (the mainStack) of "Aquarius ASCII Draw"
