@@ -1,0 +1,46 @@
+
+-- script of field "AquaScreen" of stack "AquaTextChanger"
+-- this script handles the mouse contact with the field's characters
+-- I tried this in the mainstack but it seemed to slow with losing focus and grabbing it again
+on mouseDown
+mouseDrawOnField
+end mouseDown
+
+on mouseStillDown
+mouseDrawOnField
+end mouseStillDown
+
+-- arrow keys cycle through the images
+on arrowKey tkey
+   send arrowKey&& tkey to stack (the mainstack of this stack)
+end arrowKey
+
+
+
+on mouseDrawOnField
+   if (mouse(1) is down and the mouseLoc is within the rect of field 1 of stack "AquaTextChanger" ) or (mouse(3) is down and the mouseloc is within the rect of field 1 of stack "AquaTextChanger") then 
+      select the mouseCharChunk
+      if it is not empty then
+         if "TextInput" is in the windows then put word 2 of the mouseCharChunk into field "CurrentLocation" of stack "TextInput"
+         if the altKey is down then 
+            put the imageSource of the MouseCharChunk into TS
+            set the imageToUse of stack (the mainStack of this stack) to TS
+            send updateImages && (width of stack (the mainStack of this stack)/16) to stack (the mainStack of this stack)
+         else
+            
+            set the itemToChange of stack (the mainStack of this stack) to the mouseCharChunk
+            end if
+         put field 1 of stack "AquaTextChanger" & cr into theData
+         if mouse(3) is down then
+            put char 1 to (word 2 of the mouseCharChunk)-1 of theData into prfx
+            put char (word 2 of the mouseCharChunk)+1 to -1 of theData into sfx
+            set the imageSource of the mouseCharChunk to 400032 -- space empty char
+         else
+            updateText -- see mainstack
+         end if
+      end if
+   end if
+   if (mouse(1) is down and the mouseLoc is within the rect of field 1 of stack "AquaTextChanger" ) or (mouse(3) is down and the mouseloc is within the rect of field 1 of stack "AquaTextChanger") then send mouseDrawOnField to me in 10 milliseconds 
+end mouseDrawOnField
+
+-- end of script of field "AquaScreen" of stack "AquaTextChanger"
