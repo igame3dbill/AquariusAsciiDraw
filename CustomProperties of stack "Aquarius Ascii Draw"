@@ -1,0 +1,8 @@
+
+--some custom Properties of stack (the mainsStack) of stack "Aquarius Ascii Draw" 
+set the CurrentInputText of stack the mainStack of this stack) to empty
+set the mouseDownMemory of stakc the mainStack of this stack to empty
+set the ImageRects of stack (the mainStack of this stack) to empty
+set the ItemToChange of stack (the mainStack of this stack) to "char 1 to 1 of field 1"
+
+set the ImageToUse of stack (the mainStakc of this stack) to 400255 -- solid character
